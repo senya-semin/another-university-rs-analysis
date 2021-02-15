@@ -6,6 +6,9 @@ import matplotlib.pyplot as plot
 import numpy
 import pandas
 import seaborn
+from itertools import chain
+import scipy.stats as stats
+
 
 seaborn.set_theme(color_codes=True)
 plot.rcParams["figure.figsize"] = (16, 9)
@@ -76,6 +79,60 @@ diffs_ratio_mean
 
 orders.loc[:, "Year"] = orders["Trade Date"].dt.year
 orders.loc[:, "Month"] = orders["Trade Date"].dt.month
-stability_mean_by_months = orders.groupby(["Year", "Month"]).agg({"Stability": "mean"})
+stability_by_months = orders.groupby(["Year", "Month"]).agg({"Stability": "mean"})
 
-stability_mean_by_months
+stability_by_months
+
+# %%
+
+
+def RS(array: numpy.ndarray, step: int) -> float:
+    def compose(array: numpy.ndarray, step: int) -> numpy.ndarray:
+        segments = array.size // step
+        return array[: segments * step].reshape(step, segments)
+
+    log_growth = numpy.diff(numpy.log(array))
+    composed = compose(log_growth, step)
+    mean = composed.mean(axis=0)
+    mean_reshaped = numpy.tile(mean.reshape(mean.size, 1), composed.shape[0]).T
+    cumsum = composed.cumsum(axis=0) - mean_reshaped.cumsum(axis=0)
+    range_ = numpy.amax(cumsum, axis=0) - numpy.amin(cumsum, axis=0)
+    std = composed.std(axis=0)
+    return (range_ / std).mean()
+
+
+# %% 
+
+lse = pandas.read_csv(
+    "lse-100.csv",
+    sep=",",
+    header=0,
+    usecols=[0, 4],
+    names=["date", "close"],
+)
+lse = lse.iloc[::-1].reset_index(drop=True)
+
+lse.loc[:, "year"] = lse["date"].str[6:8]
+lse.loc[:, "month"] = lse["date"].str[:2]
+lse_by_months = lse.groupby(["year", "month"])['close'].apply(list).to_list()
+
+stability_mean_by_months = [numpy.mean(stability_by_months[i : i + 12]) for i in range(len(stability_by_months) - 12)]
+
+lse_slopes_by_months = []
+for i in range(len(lse_by_months) - 12):
+    sample = numpy.array(list(chain.from_iterable(lse_by_months[i : i + 12])))
+    step_range = numpy.arange(start=5, stop=sample.size // 2, step=1)
+    results = numpy.array([(step, RS(sample, step)) for step in step_range])
+    log_x = numpy.log(results[:, 0])
+    log_y = numpy.log(results[:, 1])
+    lse_slopes_by_months += [stats.linregress(log_x, log_y).slope]
+
+# %%
+
+# color = numpy.array([i for i, v in sorted(enumerate(lse_slopes_by_months), key=lambda iv: iv[1])])
+
+seaborn.regplot(x=stability_mean_by_months, y=lse_slopes_by_months)
+# seaborn.scatterplot(x=stability_mean_by_months, y=lse_slopes_by_months, hue=color)
+plot.show()
+
+# %%
