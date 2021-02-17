@@ -94,7 +94,9 @@ imoex = pandas.read_csv(
 imoex.loc[:, "year-month"] = imoex["date"].str[:-2]
 imoex_by_months = imoex.groupby("year-month")["close"].apply(list).to_list()
 
-users_mean_by_months = [numpy.mean(users_by_months[i : i + 12]) for i in range(len(users_by_months) - 12)]
+users_mean_by_months = [
+    numpy.mean(users_by_months[i : i + 12]) for i in range(len(users_by_months) - 12)
+]
 
 imoex_slopes_by_months = []
 for i in range(len(imoex_by_months) - 12):

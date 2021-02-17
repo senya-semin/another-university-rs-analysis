@@ -22,7 +22,8 @@ orders = pandas.read_excel(
     skipfooter=2,
 )
 orders = orders.loc[
-    (orders["Trade Date"] > datetime.datetime(1997, 12, 31)) & (orders["Trade Date"] < datetime.datetime(2021, 1, 1))
+    (orders["Trade Date"] > datetime.datetime(1997, 12, 31))
+    & (orders["Trade Date"] < datetime.datetime(2021, 1, 1))
 ]
 orders = orders.iloc[::-1].reset_index(drop=True)
 
@@ -41,7 +42,9 @@ def calculate_ratio_diff(array: numpy.ndarray) -> numpy.ndarray:
 
 # %%
 
-orders["Value Traded Ratio Diff"] = numpy.insert(calculate_ratio_diff(orders["Value Traded"].to_numpy()), 0, 1)
+orders["Value Traded Ratio Diff"] = numpy.insert(
+    calculate_ratio_diff(orders["Value Traded"].to_numpy()), 0, 1
+)
 orders.loc[orders["Value Traded Ratio Diff"] > 10.0, "Value Traded Ratio Diff"] = 1.0
 
 seaborn.lineplot(x="Trade Date", y="Value Traded", data=orders)
@@ -51,7 +54,9 @@ plot.show()
 
 # %%
 
-orders["Number of Trades Ratio Diff"] = numpy.insert(calculate_ratio_diff(orders["Number of Trades"].to_numpy()), 0, 1)
+orders["Number of Trades Ratio Diff"] = numpy.insert(
+    calculate_ratio_diff(orders["Number of Trades"].to_numpy()), 0, 1
+)
 orders.loc[orders["Number of Trades Ratio Diff"] > 10.0, "Number of Trades Ratio Diff"] = 1.0
 
 seaborn.lineplot(x="Trade Date", y="Number of Trades", data=orders)
@@ -61,7 +66,9 @@ plot.show()
 
 # %%
 
-orders.loc[:, "Stability"] = orders["Number of Trades Ratio Diff"] / orders["Value Traded Ratio Diff"]
+orders.loc[:, "Stability"] = (
+    orders["Number of Trades Ratio Diff"] / orders["Value Traded Ratio Diff"]
+)
 diffs_ratio_mean = orders["Stability"].to_numpy().mean()
 
 seaborn.lineplot(x="Trade Date", y="Stability", data=orders, estimator="median")
