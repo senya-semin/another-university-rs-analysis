@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy
 import scipy.stats as stats
 
@@ -24,10 +26,11 @@ def window_means(array: numpy.array, length: int = 12) -> numpy.array:
 
 
 def stability(trades: numpy.array, value: numpy.array) -> numpy.array:
-    def ratio_difference(array: numpy.array, first_value: any = 1) -> numpy.array:
+    def ratio_difference(array: numpy.array, first_value: Any = 1) -> numpy.array:
         return numpy.r_[[first_value], array[1:] / array[:-1]]
 
-    return ratio_difference(trades) / ratio_difference(value)
+    result = ratio_difference(trades) / ratio_difference(value)
+    return numpy.cumprod(result)
 
 
 def window_slopes(array: numpy.array) -> numpy.array:
