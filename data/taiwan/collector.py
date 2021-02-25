@@ -9,22 +9,22 @@ import pandas
 logging.basicConfig(level=logging.DEBUG)
 
 
-def collect_clients() -> None:
-    def download_clients() -> List[Path]:
+def collect(collection_name: str, url_name: str) -> None:
+    def download() -> List[Path]:
         # dateformat: YYYYMMDD
-        template_url = "https://www.twse.com.tw/en/exchangeReport/FMTQIK?response=csv&date={date}"
+        template_url = "https://www.twse.com.tw/en/{url_name}?response=csv&date={date}"
         logging.debug(f"Template URL: '{template_url}'.")
         dates = tuple(
             f"{date[0]}{date[1]:02}{date[2]:02}"
-            for date in product(range(1998, 2020 + 1), range(1, 12 + 1), (1,))
+            for date in product(range(1999, 2020 + 1), range(1, 12 + 1), (1,))
         )
         logging.debug(f"Dates to be downloaded: {dates}.")
 
         filenames = []
         for i, date in enumerate(dates):
-            url = template_url.format(date=date)
+            url = template_url.format(url_name=url_name, date=date)
             logging.info(f"Downloading {date} ({i + 1} of {len(dates)}) from '{url}'...")
-            download_dir = Path(".downloaded")
+            download_dir = Path(f".downloaded_{collection_name}")
             download_dir.mkdir(exist_ok=True)
             filename = download_dir / f"{date}.csv"
             urlretrieve(url, filename)
@@ -45,28 +45,32 @@ def collect_clients() -> None:
             with open(filename, "w") as file:
                 file.write(content)
 
-    def combine_clients(filenames: List[Path]) -> None:
-        logging.info("Combining clients...")
+    def combine(filenames: List[Path]) -> None:
+        logging.info(f"Combining {collection_name}...")
         combined: pandas.DataFrame = None
         for filename in filenames:
             logging.debug(f"Combining '{filename}'...")
             csv = pandas.read_csv(
                 filename,
                 header=1,
-                usecols=("Date", "Trade Volume", "Trade Value", "Transaction", "TAIEX", "Change"),
                 parse_dates=["Date"],
                 thousands=",",
             )
             combined = csv if combined is None else combined.append(csv)
-        combined.columns = ("date", "trade-volume", "trade-value", "transaction", "taiex", "change")
-        filename_ = "clients.csv"  # the underscore is used because of mypy
+        # the line fixes bad dataframe columns parsing
+        combined = combined.loc[:, ~combined.columns.str.contains("^Unnamed")]
+        # rename the header to ease its parsing in the other modules
+        combined.columns = (c.lower().replace(" ", "-") for c in combined.columns)
+        filename_ = f"{collection_name}.csv"  # the underscore is used because of mypy
         with open(filename_, "w") as file:
             logging.info(f"Saving the combined to '{filename_}'...")
             combined.to_csv(file, index=False)
 
-    filenames = download_clients()
+    logging.info(f"Collecting {collection_name}...")
+    filenames = download()
     fix_files(filenames)
-    combine_clients(filenames)
+    combine(filenames)
 
 
-collect_clients()
+collect(collection_name="clients", url_name="exchangeReport/FMTQIK")
+collect(collection_name="indexes", url_name="indicesReport/MI_5MINS_HIST")

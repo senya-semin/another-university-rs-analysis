@@ -11,6 +11,7 @@ plot.rcParams["figure.figsize"] = (16, 9)
 markets = (
     "data/korea",
     "data/london",
+    "data/taiwan",
 )
 
 _, axes = plot.subplots(1, len(markets))
@@ -22,7 +23,7 @@ for index, market in enumerate(markets):
     )
     stability_by_month = (
         clients.groupby([clients["date"].dt.year, clients["date"].dt.month])["stability"]
-        .mean()
+        .std()
         .to_numpy()
     )
     stability_window_means = functions.window_means(stability_by_month)

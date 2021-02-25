@@ -1,5 +1,5 @@
 __pycache__
-.downloaded
+.downloaded*
 .ipynb_checkpoints
 /.mypy_cache
 /.tox
