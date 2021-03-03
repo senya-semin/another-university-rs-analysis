@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 from urllib.request import urlretrieve
 
-import pandas
+import pandas as pd
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -47,10 +47,10 @@ def collect(collection_name: str, url_name: str) -> None:
 
     def combine(filenames: List[Path]) -> None:
         logging.info(f"Combining {collection_name}...")
-        combined: pandas.DataFrame = None
+        combined: pd.DataFrame = None
         for filename in filenames:
             logging.debug(f"Combining '{filename}'...")
-            csv = pandas.read_csv(
+            csv = pd.read_csv(
                 filename,
                 header=1,
                 parse_dates=["Date"],
