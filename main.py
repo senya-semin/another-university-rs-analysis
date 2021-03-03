@@ -28,6 +28,7 @@ for index, market in enumerate(markets):
     )
     stability_window_means = functions.window_means(stability_by_month)
     indexes = pandas.read_csv(f"{market}/indexes.csv", header=0, parse_dates=["date"]).dropna()
+
     indexes_by_month = (
         indexes.groupby([clients["date"].dt.year, clients["date"].dt.month])["close"]
         .apply(numpy.array)
@@ -35,23 +36,20 @@ for index, market in enumerate(markets):
     )
     indexes_window_slopes = functions.window_slopes(indexes_by_month)
 
+    clasters = functions.clusters(indexes_window_slopes, stability_window_means)
+
+    x, y = functions.attractor(indexes_by_month, clasters, a=1.4, b=0.3)
+
     axis = axes[index]
-    seaborn.scatterplot(
-        x=stability_window_means,
-        y=indexes_window_slopes,
-        c=numpy.arange(len(stability_window_means)),
-        ax=axis,
-    )
-    seaborn.regplot(
-        x=stability_window_means,
-        y=indexes_window_slopes,
-        order=3,
-        scatter=False,
-        ci=0,
-        ax=axis,
-    )
     axis.set_xlabel("stability")
     axis.set_ylabel("slopes")
     axis.set_title(market)
+    for i in range(len(x)):
+        print(numpy.mean(numpy.concatenate(x[i])))
+        seaborn.scatterplot(
+            x=numpy.concatenate(x[i]),
+            y=numpy.concatenate(y[i]),
+            ax=axis,
+        )
 
 plot.show()
