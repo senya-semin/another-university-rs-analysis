@@ -1,7 +1,7 @@
-from typing import Any, List, Tuple
+import typing
 
 import numpy as np
-import scipy.stats as stats
+from scipy.stats import linregress
 from sklearn import metrics
 from sklearn.cluster import KMeans
 
@@ -26,7 +26,7 @@ def window_means(array: np.array, length: int = 12) -> np.array:
 
 
 def stability(trades: np.array, value: np.array) -> np.array:
-    def ratio_difference(array: np.array, first_value: Any = 1) -> np.array:
+    def ratio_difference(array: np.array, first_value: typing.Any = 1) -> np.array:
         return np.r_[(first_value,), array[1:] / array[:-1]]
 
     result = ratio_difference(trades) / ratio_difference(value)
@@ -41,7 +41,7 @@ def window_slopes(array: np.array) -> np.array:
         results = np.array([(step, rs(year, step)) for step in step_range])
         log_x = np.log(results[:, 0])
         log_y = np.log(results[:, 1])
-        slopes += [stats.linregress(log_x, log_y).slope]
+        slopes += [linregress(log_x, log_y).slope]
     return np.array(slopes)
 
 
@@ -95,55 +95,4 @@ def mean(data, size):
             result += [np.mean(data[i - size : i])]
         if i == 0:
             result += [data[i]]
-    return result
-
-
-def clear(
-    lx: List[List[List[float]]], ly: List[List[List[float]]], precision=3
-) -> Tuple[Tuple[float, float]]:
-    clusters = []
-    for cx, cy in zip(lx, ly):
-        years = []
-        for yx, yy in zip(cx, cy):
-            days = []
-            for dx, dy in zip(yx, yy):
-                dx = round(dx, precision)
-                dy = round(dy, precision)
-                days += [(dx, dy)]
-            # concatenate days in a year
-            years += days
-        clusters += [tuple(years)]
-    clusters = tuple(clusters)
-
-    pairs = []
-    for cluster in clusters:
-        for pair in cluster:
-            if pair not in pairs:
-                pairs += [pair]
-    pairs = tuple(pairs)
-
-    weights = {}
-    for cluster in clusters:
-        if cluster not in weights:
-            weights[cluster] = {}
-        for pair in pairs:
-            if pair not in weights[cluster]:
-                weights[cluster][pair] = 0
-            if pair in cluster:
-                weights[cluster][pair] += 1
-    for pair in pairs:
-        maximum = 0
-        for cluster in clusters:
-            maximum = max(maximum, weights[cluster][pair])
-        for cluster in clusters:
-            if weights[cluster][pair] < maximum:
-                del weights[cluster][pair]
-
-    result = []
-    for value in weights.values():
-        values = []
-        for key in value.keys():
-            values += [key]
-        result += [tuple(values)]
-    result = tuple(result)
     return result

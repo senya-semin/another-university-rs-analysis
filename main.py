@@ -6,9 +6,9 @@ import plotly.subplots as sp
 import functions
 
 markets = (
-    # "data/korea",
+    "data/korea",
     "data/london",
-    # "data/taiwan",
+    "data/taiwan",
 )
 
 figure = sp.make_subplots(rows=1, cols=len(markets))
@@ -33,10 +33,12 @@ for index, market in enumerate(markets):
     indexes_window_slopes = functions.window_slopes(indexes_by_month)
     clusters_ = functions.clusters(indexes_window_slopes, stability_window_means)
 
-    attractor = functions.attractor(indexes_by_month, clusters_, a=1.4, b=0.3)
-    for cluster in functions.clear(*attractor):
-        x = [i[0] for i in cluster]
-        y = [i[1] for i in cluster]
-        figure.add_trace(go.Scatter(x=x, y=y, mode="markers"), row=1, col=index + 1)
+    x, y = functions.attractor(indexes_by_month, clusters_, a=1.4, b=0.3)
+    for i in range(len(x)):
+        figure.add_trace(
+            go.Scatter(x=np.concatenate(x[i]), y=np.concatenate(y[i]), mode="markers"),
+            row=1,
+            col=index + 1,
+        )
 
 figure.show()

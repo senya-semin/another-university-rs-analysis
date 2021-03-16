@@ -1,7 +1,7 @@
+import itertools
 import logging
-from itertools import product
-from pathlib import Path
-from typing import List
+import pathlib
+import typing
 from urllib.request import urlretrieve
 
 import pandas as pd
@@ -10,13 +10,13 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def collect(collection_name: str, url_name: str) -> None:
-    def download() -> List[Path]:
+    def download() -> typing.List[pathlib.Path]:
         # dateformat: YYYYMMDD
         template_url = "https://www.twse.com.tw/en/{url_name}?response=csv&date={date}"
         logging.debug(f"Template URL: '{template_url}'.")
         dates = tuple(
             f"{date[0]}{date[1]:02}{date[2]:02}"
-            for date in product(range(1999, 2020 + 1), range(1, 12 + 1), (1,))
+            for date in itertools.product(range(1999, 2020 + 1), range(1, 12 + 1), (1,))
         )
         logging.debug(f"Dates to be downloaded: {dates}.")
 
@@ -24,7 +24,7 @@ def collect(collection_name: str, url_name: str) -> None:
         for i, date in enumerate(dates):
             url = template_url.format(url_name=url_name, date=date)
             logging.info(f"Downloading {date} ({i + 1} of {len(dates)}) from '{url}'...")
-            download_dir = Path(f".downloaded_{collection_name}")
+            download_dir = pathlib.Path(f".downloaded_{collection_name}")
             download_dir.mkdir(exist_ok=True)
             filename = download_dir / f"{date}.csv"
             urlretrieve(url, filename)
@@ -32,7 +32,7 @@ def collect(collection_name: str, url_name: str) -> None:
             filenames += [filename]
         return filenames
 
-    def fix_files(filenames: List[Path]) -> None:
+    def fix_files(filenames: typing.List[pathlib.Path]) -> None:
         """The footer lines count is variable from file to file, so we can't use the default
         Pandas' solution to skip these lines. But we know all the footers starts with the "Remarks:"
         string. This fix method is intended to remove this line and all the ones after it."""
@@ -45,7 +45,7 @@ def collect(collection_name: str, url_name: str) -> None:
             with open(filename, "w") as file:
                 file.write(content)
 
-    def combine(filenames: List[Path]) -> None:
+    def combine(filenames: typing.List[pathlib.Path]) -> None:
         logging.info(f"Combining {collection_name}...")
         combined: pd.DataFrame = None
         for filename in filenames:
