@@ -96,3 +96,15 @@ def mean(data, size):
         if i == 0:
             result += [data[i]]
     return result
+
+
+def recurrence_plot(data: np.array) -> np.array:
+    print(data)
+    print(data.size)
+    time = np.arange(data.size)
+    epsilon = data.size * 1e-2
+    step = 1
+    return [
+        [np.heaviside(epsilon - np.linalg.norm(data[i] - data[j]), 0) for i in time[step:]]
+        for j in time[:-step]
+    ]
