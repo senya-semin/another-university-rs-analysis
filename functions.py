@@ -1,9 +1,11 @@
 import typing
 
+import matplotlib.pyplot as plot
 import numpy as np
+import seaborn as sns
 from scipy.stats import linregress
-from sklearn import metrics
-from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
+from sklearn.neighbors import NearestNeighbors
 
 
 def rs(array: np.array, step: int) -> float:
@@ -55,19 +57,16 @@ def medium(data):
 
 def clusters(hurst, stability):
     vector = np.array(list(zip(hurst, stability)))
-    k = (
-        np.argmax(
-            [
-                metrics.calinski_harabasz_score(vector, KMeans(n_clusters=n).fit(vector).labels_)
-                for n in np.arange(2, 9)
-            ]
-        )
-        + 1
-    )
-    return KMeans(n_clusters=k).fit(vector).labels_
+    nn = NearestNeighbors(n_neighbors=5).fit(vector)
+    distances, idx = nn.kneighbors(vector)
+    distances = np.sort(distances, axis=0)[:, 1]
+    sns.lineplot(x=range(len(distances)), y=distances)
+    plot.show()
+    eps = float(input("Пожалуйста введите расстояние между точками"))
+    return DBSCAN(eps=eps, min_samples=5).fit(vector).labels_
 
 
-def attractor(data, clusters, a, b):
+def attractor(data, clusters, a=1.4, b=0.3, step=0):
     def henon(data, a, b):
         x, y = [], []
         for i in range(len(data)):
@@ -75,27 +74,56 @@ def attractor(data, clusters, a, b):
             y += [[b * data[i][:-1][j] for j in range(len(data[i]) - 1)]]
         return x, y
 
-    classification_x = [[] for _ in range(len(np.unique(clusters)))]
-    classification_y = [[] for _ in range(len(np.unique(clusters)))]
+    def clear(xx, yy, a=a, b=b, step=step):
+        x = np.copy(xx)
+        y = np.copy(yy)
+        for i in range(20):
+            x_, y_ = [], []
+            for j in range(len(x)):
+                x_ += [[1 - a * xx[j][k] ** 2 + yy[j][k] for k in range(len(x[j]) - 1)]]
+                y_ += [[b * xx[j][k] for k in range(len(x[j]) - 1)]]
+            xx = x_
+            yy = y_
+        xx = [np.where(not np.isfinite(xx[i])) for i in range(len(xx))]
+        yy = [np.where(not np.isfinite(yy[i])) for i in range(len(yy))]
+        x = [np.delete(x[i], j) for i in range(len(x)) for j in xx[i]]
+        y = [np.delete(y[i], j) for i in range(len(x)) for j in yy[i]]
+        return x, y
+
+    classification_x = [[] for _ in range(len(np.unique(clusters)) - 1)]
+    classification_y = [[] for _ in range(len(np.unique(clusters)) - 1)]
     year = [np.concatenate(data[month : month + 12]) for month in np.arange(data.size - 12)]
     medium_ = medium([year[i] for i in range(len(year))])
     attractorization_x, attractorization_y = henon(medium_, a=a, b=b)
+    attractorization_x, attractorization_y = clear(attractorization_x, attractorization_y)
+    for i in range(step):
+        x, y = [], []
+        for j in range(len(attractorization_x)):
+            x += [
+                [
+                    1 - a * attractorization_x[j][k] ** 2 + attractorization_y[j][k]
+                    for k in range(len(attractorization_x[j]) - 1)
+                ]
+            ]
+            y += [[b * attractorization_x[j][k] for k in range(len(attractorization_x[j]) - 1)]]
+        attractorization_x = x
+        attractorization_y = y
     for i in range(len(attractorization_x)):
-        classification_x[clusters[i]] += [attractorization_x[i]]
-        classification_y[clusters[i]] += [attractorization_y[i]]
+        if clusters[i] != -1:
+            classification_x[clusters[i]] += [attractorization_x[i]]
+            classification_y[clusters[i]] += [attractorization_y[i]]
     return classification_x, classification_y
 
 
-def mean(data, size):
-    result = []
-    for i in range(len(data)):
-        if i + 1 < size and i != 0:
-            result += [np.mean(data[0:i])]
-        elif i != 0:
-            result += [np.mean(data[i - size : i])]
-        if i == 0:
-            result += [data[i]]
-    return result
+def meaning(data, clusters, step):
+    m_y = [[] for _ in range(len(np.unique(clusters)) - 1)]
+    m_x = [[] for _ in range(len(np.unique(clusters)) - 1)]
+    for i in range(step):
+        x, y = attractor(data=data, clusters=clusters, step=i)
+        for j in range(len(x)):
+            m_x[j] += [np.mean(np.concatenate(x[j]))]
+            m_y[j] += [np.var(np.concatenate(x[j]))]
+    return m_x, m_y
 
 
 def recurrence_plot(data: np.array) -> np.array:

@@ -25,6 +25,7 @@ for index, market in enumerate(markets):
     )
     stability_window_means = functions.window_means(stability_by_month)
     indexes = pd.read_csv(f"{market}/indexes.csv", header=0, parse_dates=["date"]).dropna()
+
     indexes_by_month = (
         indexes.groupby([clients["date"].dt.year, clients["date"].dt.month])["close"]
         .apply(np.array)
@@ -32,6 +33,12 @@ for index, market in enumerate(markets):
     )
     indexes_window_slopes = functions.window_slopes(indexes_by_month)
     clusters_ = functions.clusters(indexes_window_slopes, stability_window_means)
+    print(np.unique(clusters_))
+    # clusters_ = clusters_[0]
+    # print(len(clusters_))
+    print(len(clusters_))
+    print(len(indexes_by_month))
+    #    x, y = functions.henon_heiles(indexes_by_month, 0.125, 1)
 
     x, y = functions.attractor(indexes_by_month, clusters_, a=1.4, b=0.3)
     for i in range(len(x)):
@@ -41,4 +48,5 @@ for index, market in enumerate(markets):
             col=index + 1,
         )
 
-figure.show()
+# figure.show()
+# plot.show()
