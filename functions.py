@@ -108,3 +108,32 @@ def recurrence_plot(data: np.array) -> np.array:
         [np.heaviside(epsilon - np.linalg.norm(data[i] - data[j]), 0) for i in time[step:]]
         for j in time[:-step]
     ]
+
+
+def lyapunov(matrix: np.array) -> float:
+    max_length = 0
+    size = matrix.shape[0]
+    for diagonal in range(1, size):
+        diagonal_lengths = []
+        length = 0
+        for element in range(size - diagonal):
+            i = element
+            j = matrix.shape[0] - diagonal - element - 1
+            if matrix[i][j]:
+                length += 1
+            else:
+                diagonal_lengths.append(length)
+                length = 0
+        diagonal_lengths.append(length)
+        max_length = max(max(diagonal_lengths), max_length)
+    return max_length
+
+
+def normalize(data: np.array) -> np.array:
+    mean, max_, min_ = data.mean(), data.max(), data.min()
+    function = np.vectorize(lambda x: (x - mean) / (max_ - min_))
+    return function(data)
+
+
+def return_(data: np.array) -> np.array:
+    return np.diff(np.log(data))
