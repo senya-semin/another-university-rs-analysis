@@ -55,8 +55,8 @@ def medium(data):
     return result
 
 
-def clusters(hurst, stability):
-    vector = np.array(list(zip(hurst, stability)))
+def clusters(hurst, stability, lyapunov):
+    vector = np.array(list(zip(hurst, stability, lyapunov)))
     nn = NearestNeighbors(n_neighbors=5).fit(vector)
     distances, idx = nn.kneighbors(vector)
     distances = np.sort(distances, axis=0)[:, 1]
@@ -127,15 +127,15 @@ def meaning(data, clusters, step):
 
 
 def recurrence_plot(data: np.array) -> np.array:
-    print(data)
-    print(data.size)
     time = np.arange(data.size)
     epsilon = data.size * 1e-2
     step = 1
-    return [
-        [np.heaviside(epsilon - np.linalg.norm(data[i] - data[j]), 0) for i in time[step:]]
-        for j in time[:-step]
-    ]
+    return np.array(
+        [
+            [np.heaviside(epsilon - np.linalg.norm(data[i] - data[j]), 0) for i in time[step:]]
+            for j in time[:-step]
+        ]
+    )
 
 
 def lyapunov(matrix: np.array) -> float:
@@ -154,7 +154,7 @@ def lyapunov(matrix: np.array) -> float:
                 length = 0
         diagonal_lengths.append(length)
         max_length = max(max(diagonal_lengths), max_length)
-    return max_length
+    return 1 / max_length
 
 
 def normalize(data: np.array) -> np.array:
@@ -165,3 +165,8 @@ def normalize(data: np.array) -> np.array:
 
 def return_(data: np.array) -> np.array:
     return np.diff(np.log(data))
+
+
+def chaos(data: np.array) -> np.array:
+    years = [np.concatenate(data[month : month + 12]) for month in np.arange(data.size - 12)]
+    return np.array([lyapunov(recurrence_plot(year)) for year in years])
